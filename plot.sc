@@ -173,7 +173,7 @@ plot_delete(name) ->
         );
         i += 1
     );
-    print(player, format('l plot ', 't ' + name, 'l  does not exist'))
+    print(player, format('l Plot ', 't ' + name, 'l  does not exist'))
 );
 
 plot_list() ->
@@ -186,9 +186,33 @@ plot_list() ->
         print(player, format('l No plots configured'));
         return()
     );
+
+    print(player, '');
+    print(player, format('mb List of plots'));
     for(plots:'plots',
-        print(player, format('r - ', 't ' + _:'name', 'r  owned by ', 't ' + _:'owners', 'r  with regions ', 't ' + _:'positions'))
+        print(player, format('r - ', 't ' + _:'name', 'r  owned by ', 't ' + _:'owners', 'r  with regions ') + plot_tp_list(_:'name'))
     )
+);
+
+plot_tp_list(name) ->
+(
+    plots = read_file('plots', 'json');
+
+    for(plots:'plots', if(_:'name' == name,
+        string = '';
+        i = 0;
+        for(_:'positions',
+            if(i > 0, string = string + format('r , '));
+            dim = 't ';
+            if(_:0 == 'the_nether', dim = 'n ');
+            if(_:0 == 'the_end', dim = 'd ');
+            string = string + format(dim + [_:1, _:2], '^ TP', '!/execute in ' + _:0 + ' run tp @s ' + _:1 * 512 + 256 + '.0 1 ' + _:2 * 512 + 256 + '.0 180 0');
+            i = 1
+        );
+        return(string)
+    ));
+    print(player('all'), 'AMOG')
+    // print(player, format('l Plot ', 't ' + name, 'l  does not exist'))
 );
 
 plot_tp(name) ->
