@@ -210,9 +210,7 @@ plot_tp_list(name) ->
             i = 1
         );
         return(string)
-    ));
-    print(player('all'), 'AMOG')
-    // print(player, format('l Plot ', 't ' + name, 'l  does not exist'))
+    ))
 );
 
 plot_tp(name) ->
