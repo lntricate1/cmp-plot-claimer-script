@@ -190,7 +190,10 @@ plot_list() ->
     print(player, '');
     print(player, format('mb List of plots'));
     for(plots:'plots',
-        print(player, format('r - ', 't ' + _:'name', 'r  owned by ', 't ' + _:'owners', 'r  with regions ') + plot_tp_list(_:'name'))
+        tp = _:'tp';
+        if(isInt(tp:1), tp:1 += '.0');
+        if(isInt(tp:3), tp:3 += '.0');
+        print(player, format('r - ', 'm [' + _:'name' + ']', '^ TP', '!/plot tp ' + _:'name', 'r  owned by ', 't ' + _:'owners', 'r  with regions ') + plot_tp_list(_:'name'))
     )
 );
 
@@ -206,7 +209,7 @@ plot_tp_list(name) ->
             dim = 't ';
             if(_:0 == 'the_nether', dim = 'n ');
             if(_:0 == 'the_end', dim = 'd ');
-            string = string + format(dim + [_:1, _:2], '^ TP', '!/execute in ' + _:0 + ' run tp @s ' + _:1 * 512 + 256 + '.0 1 ' + _:2 * 512 + 256 + '.0 180 0');
+            string = string + format(dim + [_:1, _:2], '^ TP', '!' + teleport_command('@s', [_:0, _:1 * 512 + 256 + '.0', 1, _:2 * 512 + 256 + '.0', 180, 0]));
             i = 1
         );
         return(string)
@@ -222,7 +225,7 @@ plot_tp(name) ->
         tp = _:'tp';
         if(isInt(tp:1), tp:1 += '.0');
         if(isInt(tp:3), tp:3 += '.0');
-        run('execute in ' + tp:0 + ' run tp ' + player~'name' + ' ' + tp:1 + ' ' + tp:2 + ' ' + tp:3 + ' ' + tp:4 + ' ' + tp:5);
+        run(teleport_command('@s', tp));
         return()
     ));
     print(player, format('l Plot ', 't ' + name, 'l  does not exist'))
@@ -267,6 +270,11 @@ vanilla_fill(pos1, pos2, block) ->
 setblock(pos, block) ->
 (
     run('setblock ' + pos:0 + ' ' + pos:1 + ' ' + pos:2 + ' ' + block)
+);
+
+teleport_command(e, pos) ->
+(
+    return('/execute in ' + pos:0 + ' run tp ' + e + ' ' + pos:1 + ' ' + pos:2 + ' ' + pos:3 + ' ' + pos:4 + ' ' + pos:5)
 );
 
 isInt(n) -> return(n - floor(n) == 0);
