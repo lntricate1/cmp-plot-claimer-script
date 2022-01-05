@@ -25,6 +25,13 @@ __config()->
     'scope' -> 'global'
 };
 
+global_regions = {};
+plots = read_file('plots', 'json');
+for(plots:'plots',
+    plotname = _;
+    for(plots:'plots':plotname:'positions', global_regions = global_regions + {_ -> plotname})
+);
+
 plot_claim(name, color, overwrite) ->
 (
     player = player();
@@ -32,7 +39,8 @@ plot_claim(name, color, overwrite) ->
     pos = [player~'dimension', ceil(pos:0) - 1, ceil(pos:2) - 1];
 
     if(list_files('', 'json')~'plots' == null,
-        write_file('plots', 'json', {'plots' -> [{'owners' -> [player], 'positions' -> [pos], 'name' -> name, 'tp' -> [pos:0, pos:1 * 512 + 256, 1, pos:2 * 512 + 256, 180, 0], 'subplots' -> []}]});
+        write_file('plots', 'json', {'plots' -> {name -> {'owners' -> [player], 'positions' -> [pos], 'tp' -> [pos:0, pos:1 * 512 + 256, 1, pos:2 * 512 + 256, 180, 0], 'subplots' -> []}}});
+        global_regions = global_regions + {pos -> name};
         print(player, format('r Region ', 't ' + pos, 'r  claimed for new plot ', 't ' + name, 'r  by ', 't ' + player));
         highlight_region(pos, color);
         return();
@@ -42,30 +50,32 @@ plot_claim(name, color, overwrite) ->
 
     i = 0;
     j = 0;
-    for(plots:'plots', plot = _; j += 1; for(plot:'positions',
-        if(_ == pos,
-            if(plot:'name' == name,
-                print(player, format('l This region is already part of ', 't ' + name));
-                return()
-            );
-            if(overwrite,
-                if(length(plot:'positions') > 1, delete(plot:'positions', i),
-                    print(player, format('l Overwriting this region will delete plot ', 't ' + plot:'name', 'l . If you want to continue, run ', 'm [/plot delete ' + plot:'name' + ']', '!/plot delete ' + plot:'name', 'l  and then you can claim this region'));
-                    return()
-                );
-                if(!add_region_to_plot(plots, pos, name, color, player),
-                    new_plot_entry(plots, pos, name, player, color, player)
-                )
-            ,    
-                if(length(plot:'positions') == 1,
-                    print(player, format('l Overwriting this region will delete plot ', 't ' + plot:'name', 'l . If you want to continue, run ', 'm [/plot delete ' + plot:'name' + ']', '!/plot delete ' + plot:'name', 'l  and then you can claim this region')),
-                print(player, format('l Region already taken by plot ', 't ' + plot:'name', 'l . Run ', 'm [/plot claim ' + name + ' <color> overwrite]', '!/plot claim ' + name + ' ' + color + ' overwrite', 'l  to overwrite it'))
-                )
-            );
+    plotname = global_regions:pos;
+    if(plotname != null,
+        if(plotname == name,
+            print(player, format('l This region is already part of ', 't ' + name));
             return()
         );
-        i += 1;
-    ));
+        plot = plots:'plots':plotname;
+        if(overwrite,
+            if(length(plot:'positions') > 1,
+                delete(plots:'plots':plotname:'positions', plot:'positions'~pos);
+                delete(global_regions, pos)
+            ,
+                print(player, format('l Overwriting this region will delete plot ', 't ' + plotname, 'l . If you want to continue, run ', 'm [/plot delete ' + plotname + ']', '!/plot delete ' + plotname, 'l  and then you can claim this region'));
+                return()
+            );
+            if(!add_region_to_plot(plots, pos, name, color, player),
+                new_plot_entry(plots, pos, name, player, color, player)
+            )
+        ,    
+            if(length(plot:'positions') == 1,
+                print(player, format('l Overwriting this region will delete plot ', 't ' + plotname, 'l . If you want to continue, run ', 'm [/plot delete ' + plotname + ']', '!/plot delete ' + plotname, 'l  and then you can claim this region')),
+            print(player, format('l Region already taken by plot ', 't ' + plotname, 'l . Run ', 'm [/plot claim ' + name + ' <color> overwrite]', '!/plot claim ' + name + ' ' + color + ' overwrite', 'l  to overwrite it'))
+            )
+        );
+        return()
+    );
 
     if(!add_region_to_plot(plots, pos, name, color, player),
         new_plot_entry(plots, pos, name, player, color, player)
@@ -74,19 +84,22 @@ plot_claim(name, color, overwrite) ->
 
 add_region_to_plot(plots, pos, name, color, player) ->
 (
-    for(plots:'plots', if(_:'name' == name,
-        _:'positions':length(_:'positions') = pos;
+    plot = plots:'plots':name;
+    if(plot != null,
+        plots:'plots':name:'positions':length(plot:'positions') = pos;
+        global_regions = global_regions + {pos -> name};
         write_file('plots', 'json', plots);
         print(player, format('r Region ', 't ' + pos, 'r  added to plot ', 't ' + name));
         highlight_region(pos, color);
         return(true)
-    ));
+    );
     return(false)
 );
 
 new_plot_entry(plots, pos, name, owners, color, player) ->
 (
-    plots:'plots':length(plots:'plots') = {'owners' -> owners, 'positions' -> [pos], 'name' -> name, 'tp' -> [pos:0, pos:1 * 512 + 256, 1, pos:2 * 512 + 256, 180, 0], 'subplots' -> []}; 
+    plots:'plots' = plots:'plots' + {name -> {'owners' -> owners, 'positions' -> [pos], 'tp' -> [pos:0, pos:1 * 512 + 256, 1, pos:2 * 512 + 256, 180, 0], 'subplots' -> []}}; 
+    global_regions = global_regions + {pos -> name};
     print(player, format('r Region ', 't ' + pos, 'r  claimed for new plot ', 't ' + name, 'r  by ', 't ' + owners));
     highlight_region(pos, color);
     write_file('plots', 'json', plots);
@@ -99,31 +112,25 @@ plot_unclaim(confirm) ->
     pos = player~'pos' / 512;
     pos = [player~'dimension', ceil(pos:0) - 1, ceil(pos:2) - 1];
 
-    i = 0;
-    j = 0;
-    for(plots:'plots',
-        plot = _;
-        for(plot:'positions',
-            if(_ == pos,
-                if(length(plot:'positions') == 1,
-                        print(player, format('l Unclaiming this region will delete plot ', 't ' + plot:'name', 'l . If you want to continue, run ', 'm [/plot delete ' + plot:'name' + ']', '!/plot delete ' + plot:'name'));
-                        return()
-                );
-                if(confirm,
-                    delete(plot:'positions', j);
-                    write_file('plots', 'json', plots);
-                    print(player, format('r Unclaiming region ', 't ' + pos, 'r  from ', 't ' + plot:'name'));
-                    unhighlight_region(pos);
-                    return()
-                ,
-                    print(player, format('r Current region is part of ', 't ' + plot:'name', 'r , owned by ', 't ' + plot:'owners', 'r , with ', 't ' + length(plot:'positions'),
-                    'r  regions total. Click ', 'm HERE', '!/plot unclaim confirm', 'r  to confirm'));
-                );
+    plotname = global_regions:pos;
+    if(plot != null,
+        plot = plots:'plots':plotname;
+        if(length(plot:'positions') == 1,
+                print(player, format('l Unclaiming this region will delete plot ', 't ' + plotname, 'l . If you want to continue, run ', 'm [/plot delete ' + plotname + ']', '!/plot delete ' + plotname));
                 return()
-            );
-            j += 1
         );
-        i += 1
+        if(confirm,
+            delete(plots:'plots':plotname:'positions', plot:'positions'~pos);
+            delete(global_regions, pos);
+            write_file('plots', 'json', plots);
+            print(player, format('r Unclaiming region ', 't ' + pos, 'r  from ', 't ' + plotname));
+            unhighlight_region(pos);
+            return()
+        ,
+            print(player, format('r Current region is part of ', 't ' + plotname, 'r , owned by ', 't ' + plot:'owners', 'r , with ', 't ' + length(plot:'positions'),
+            'r  regions total. Click ', 'm HERE', '!/plot unclaim confirm', 'r  to confirm'));
+        );
+        return()
     );
     print(player, format('l Current region is unclaimed'))
 );
@@ -134,10 +141,13 @@ plot_query(pos) ->
     player = player();
     pos = [player~'dimension', ceil(pos:0 / 512) - 1, ceil(pos:2 / 512) - 1];
 
-    for(plots:'plots', plot = _; for(plot:'positions', if(_ == pos,
-        print(player, format('r Current region is part of ', 't ' + plot:'name', 'r , owned by ', 't ' + plot:'owners', 'r , with ', 't ' + length(plot:'positions'), 'r  regions total'));
+    plotname = global_regions~pos;
+    if(plotname != null,
+        plot = plots:plotname;
+        print(player, format('r Current region is part of ', 't ' + plotname, 'r , owned by ', 't ' + plot:'owners', 'r , with ', 't ' + length(plot:'positions'), 'r  regions total'));
         return()
-    )))
+    );
+    print(player, format('r Current region is unclaimed'))
 );
 
 plot_join(name) ->
@@ -145,15 +155,16 @@ plot_join(name) ->
     plots = read_file('plots', 'json');
     player = player();
 
-    for(plots:'plots', if(_:'name' == name,
-        for(_:'owners', if(_ == player,
+    plot = plots:'plots':name;
+    if(plot != null,
+        if(plot:'owners'~player != null,
             print(player, format('t ' + player, 'l  already owns plot ', 't ' + name));
             return();
-        ));
-        _:'owners':length(_:'owners') = player();
+        );
+        plots:name:'owners':length(plot:'owners') = player();
         write_file('plots', 'json', plots);
         print(player, format('t ' + player, 'r  added to plot ', 't ' + name));
-    ));
+    );
     print(player, format('l Plot ', 't ' + name, 'l  does not exist'))
 );
 
@@ -162,16 +173,15 @@ plot_delete(name) ->
     plots = read_file('plots', 'json');
     player = player();
 
-    i = 0;
-    for(plots:'plots',
-        if(_:'name' == name,
-            delete(plots:'plots', i);
-            write_file('plots', 'json', plots);
-            print(player, format('r ' + 'plot ', 't ' + name, 'r  deleted'));
-            for(_:'positions', unhighlight_region(_));
-            return();
+    positions = plots:'plots':name:'positions';
+    if(delete(plots:'plots', name),
+        write_file('plots', 'json', plots);
+        print(player, format('r ' + 'plot ', 't ' + name, 'r  deleted'));
+        for(positions,
+            unhighlight_region(_);
+            delete(global_regions, _)
         );
-        i += 1
+        return()
     );
     print(player, format('l Plot ', 't ' + name, 'l  does not exist'))
 );
@@ -190,10 +200,11 @@ plot_list() ->
     print(player, '');
     print(player, format('mb List of plots'));
     for(plots:'plots',
-        tp = _:'tp';
+        plot = plots:'plots':_;
+        tp = plot:'tp';
         if(isInt(tp:1), tp:1 += '.0');
         if(isInt(tp:3), tp:3 += '.0');
-        print(player, format('r - ', 'm [' + _:'name' + ']', '^ TP', '!/plot tp ' + _:'name', 'r  owned by ', 't ' + _:'owners', 'r  with regions ') + plot_tp_list(_:'name'))
+        print(player, format('r - ', 'm [' + _ + ']', '^ TP', '!/plot tp ' + _, 'r  owned by ', 't ' + plot:'owners', 'r  with regions ') + plot_tp_list(_))
     )
 );
 
@@ -201,19 +212,17 @@ plot_tp_list(name) ->
 (
     plots = read_file('plots', 'json');
 
-    for(plots:'plots', if(_:'name' == name,
-        string = '';
-        i = 0;
-        for(_:'positions',
-            if(i > 0, string = string + format('r , '));
-            dim = 't ';
-            if(_:0 == 'the_nether', dim = 'n ');
-            if(_:0 == 'the_end', dim = 'd ');
-            string = string + format(dim + [_:1, _:2], '^ TP', '!' + teleport_command('@s', [_:0, _:1 * 512 + 256 + '.0', 1, _:2 * 512 + 256 + '.0', 180, 0]));
-            i = 1
-        );
-        return(string)
-    ))
+    plot = plots:'plots':name;
+    string = '';
+    for(plot:'positions',
+        if(i > 0, string = string + format('r , '));
+        dim = 't ';
+        if(_:0 == 'the_nether', dim = 'n ');
+        if(_:0 == 'the_end', dim = 'd ');
+        string = string + format(dim + [_:1, _:2], '^ TP', '!' + teleport_command('@s', [_:0, _:1 * 512 + 256 + '.0', 1, _:2 * 512 + 256 + '.0', 180, 0]));
+        i = 1
+    );
+    return(string)
 );
 
 plot_tp(name) ->
@@ -221,13 +230,14 @@ plot_tp(name) ->
     plots = read_file('plots', 'json');
     player = player();
 
-    for(plots:'plots', if(_:'name' == name,
-        tp = _:'tp';
+    plot = plots:'plots':name;
+    if(plot != null,
+        tp = plot:'tp';
         if(isInt(tp:1), tp:1 += '.0');
         if(isInt(tp:3), tp:3 += '.0');
         run(teleport_command('@s', tp));
         return()
-    ));
+    );
     print(player, format('l Plot ', 't ' + name, 'l  does not exist'))
 );
 
@@ -236,29 +246,30 @@ plot_modify(name, property, value) ->
     plots = read_file('plots', 'json');
     player = player();
 
-    for(plots:'plots', if(_:'name' == name,
-        plot = _;
+    plot = plots:'plots':name;
+    if(plot != null,
         if(property == 'tp',
-            for(plot:'positions', if(value:0 == _:0 && ceil(value:1 / 512) - 1 == _:1 && ceil(value:3 / 512) - 1 == _:2,
-                plot:'tp' = value;
+            if(plot:'positions'~[value:0, ceil(value:1 / 512) - 1, ceil(value:3 / 512) - 1] != null,
+                plots:name:'tp' = value;
                 write_file('plots', 'json', plots);
                 print(player, format('r Teleport location for ', 't ' + name, 'r  set to ', 't ' + value));
                 return()
-            ));
+            );
             print(player, format('l Teleport location is outside claimed area for ', 't ' + name));
             return()
         );
         if(property == 'name',
-            for(plots:'plots', if(_:'name' == value,
+            if(plots:value != null,
                 print(player, format('l Name ', 't ' + value, 'l  is already taken'));
                 return()
-            ));
-            plot:'name' = value;
+            );
+            plots:value = plot;
+            delete(plots, name);
             write_file('plots', 'json', plots);
             print(player, format('l Plot name changed from ', 't ' + name, 'l  to ', 't ' + value));
             return()
         )
-    ));
+    );
     print(player, format('l Plot ', 't ' + name, 'l  does not exist'))
 );
 
@@ -344,4 +355,26 @@ unhighlight_region(pos) ->
             )
         )
     ))
+);
+
+global_previous_plot = {};
+__on_tick() ->
+(
+    plots = read_file('plots', 'json');
+    for(player('all'), entity_event(_, 'on_move', _(e, m, p1, p2, outer(plots)) ->
+    (
+        if(ceil(p1:0 / 512) != ceil(p2:0 / 512) || ceil(p1:2 / 512) != ceil(p2:2 / 512),
+            plotname = global_regions:[e~'dimension', ceil(p2:0 / 512) - 1, ceil(p2:2 / 512) - 1];
+            if(plotname != global_previous_plot:e,
+                if(plotname != null,
+                    display_title(e, 'title', format('w Entering plot ', 't ' + plotname), 5, 15, 5);
+                    global_previous_plot = global_previous_plot + {e -> plotname};
+                    return()
+                );
+                global_previous_plot = global_previous_plot + {e -> null};
+                display_title(e, 'title', format('w Exiting claimed area'));
+                display_title(e, 'subtitle', format('w Anything you build here will dissappear when we prune the world'))
+            )
+        )
+    )))
 )
