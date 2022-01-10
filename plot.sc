@@ -156,7 +156,7 @@ plot_join(name) ->
             print(player, format('t ' + player, 'l  already owns plot ', 't ' + name));
             return();
         );
-        plots'plots':name:'owners':length(plot:'owners') = player();
+        plots:'plots':name:'owners':length(plot:'owners') = player();
         write_file('plots', 'json', plots);
         print(player, format('t ' + player, 'r  added to plot ', 't ' + name));
         return()
