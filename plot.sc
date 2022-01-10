@@ -30,11 +30,7 @@ __config()->
     'arguments' ->
     {
         'name' -> {'type' -> 'string', 'suggest' -> []},
-        'name_existing' -> {'type' -> 'string', 'suggester' -> _(args) ->
-        (
-            plots = read_file('plots', 'json');
-            keys(plots:'plots')
-        )},
+        'name_existing' -> {'type' -> 'string', 'suggester' -> _(args) -> keys(read_file('plots', 'json'):'plots')},
         'newName' -> {'type' -> 'string'},
         'color' -> {'type' -> 'string', 'options' -> ['white', 'orange', 'magenta', 'light_blue', 'yellow', 'lime', 'pink', 'gray', 'light_gray', 'cyan', 'purple', 'blue', 'brown', 'green', 'red', 'black', 'none']}
     },
