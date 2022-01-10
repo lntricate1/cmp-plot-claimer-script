@@ -61,7 +61,7 @@ plot_claim(name, color, overwrite) ->
                 return()
             );
             if(!add_region_to_plot(plots, pos, name, color, player),
-                new_plot_entry(plots, pos, name, player, color, player)
+                new_plot_entry(plots, pos, name, [player], color, player)
             )
         ,    
             if(length(plot:'positions') == 1,
@@ -73,7 +73,7 @@ plot_claim(name, color, overwrite) ->
     );
 
     if(!add_region_to_plot(plots, pos, name, color, player),
-        new_plot_entry(plots, pos, name, player, color, player)
+        new_plot_entry(plots, pos, name, [player], color, player)
     )
 );
 
@@ -159,6 +159,7 @@ plot_join(name) ->
         plots'plots':name:'owners':length(plot:'owners') = player();
         write_file('plots', 'json', plots);
         print(player, format('t ' + player, 'r  added to plot ', 't ' + name));
+        return()
     );
     print(player, format('l Plot ', 't ' + name, 'l  does not exist'))
 );
