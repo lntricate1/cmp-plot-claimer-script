@@ -1,30 +1,3 @@
-__config()->
-{
-    'commands' ->
-    {
-        '' -> _() -> print(player(), ''),
-        'claim <name>' -> _(name) -> plot_claim(name, 'lime', false),
-        'claim <name> <color>' -> _(name, color) -> plot_claim(name, color, false),
-        'claim <name> <color> overwrite' -> _(name, color) -> plot_claim(name, color, true),
-        'unclaim' -> _() -> plot_unclaim(false),
-        'unclaim confirm' -> _() -> plot_unclaim(true),
-        'modify <name> tp <dimension> <location> <rotation>' -> _(name, dimension, location, rotation) -> plot_modify(name, 'tp', [dimension, location:0, location:1, location:2, rotation:1, rotation:2]),
-        'modify <name> name <newName>' -> _(name, newName) -> plot_modify(name, 'name', newName),
-        'tp <name>' -> 'plot_tp',
-        'query' -> _() -> plot_query(player()~'pos'),
-        'join <name>' -> 'plot_join',
-        'delete <name>' -> 'plot_delete',
-        'list' -> 'plot_list'
-    },
-    'arguments' ->
-    {
-        'name' -> {'type' -> 'string'},
-        'newName' -> {'type' -> 'string'},
-        'color' -> {'type' -> 'string', 'options' -> ['white', 'orange', 'magenta', 'light_blue', 'yellow', 'lime', 'pink', 'gray', 'light_gray', 'cyan', 'purple', 'blue', 'brown', 'green', 'red', 'black', 'none']}
-    },
-    'scope' -> 'global'
-};
-
 if(list_files('', 'json')~'plots' == null,
     write_file('plots', 'json', {'plots' -> {}})
 );
@@ -35,6 +8,38 @@ for(plots:'plots',
     plotname = _;
     for(plots:'plots':plotname:'positions', global_regions = global_regions + {_ -> plotname})
 );
+
+__config()->
+{
+    'commands' ->
+    {
+        '' -> _() -> print(player(), ''),
+        'claim <name>' -> _(name) -> plot_claim(name, 'lime', false),
+        'claim <name> <color>' -> _(name, color) -> plot_claim(name, color, false),
+        'claim <name> <color> overwrite' -> _(name, color) -> plot_claim(name, color, true),
+        'unclaim' -> _() -> plot_unclaim(false),
+        'unclaim confirm' -> _() -> plot_unclaim(true),
+        'modify <name_existing> tp <dimension> <location> <rotation>' -> _(name, dimension, location, rotation) -> plot_modify(name, 'tp', [dimension, location:0, location:1, location:2, rotation:1, rotation:2]),
+        'modify <name_existing> name <name>' -> _(name, newName) -> plot_modify(name, 'name', newName),
+        'tp <name_existing>' -> 'plot_tp',
+        'query' -> _() -> plot_query(player()~'pos'),
+        'join <name_existing>' -> 'plot_join',
+        'delete <name_existing>' -> 'plot_delete',
+        'list' -> 'plot_list'
+    },
+    'arguments' ->
+    {
+        'name' -> {'type' -> 'string', 'suggest' -> []},
+        'name_existing' -> {'type' -> 'string', 'suggester' -> _(args) ->
+        (
+            plots = read_file('plots', 'json');
+            keys(plots:'plots')
+        )},
+        'newName' -> {'type' -> 'string'},
+        'color' -> {'type' -> 'string', 'options' -> ['white', 'orange', 'magenta', 'light_blue', 'yellow', 'lime', 'pink', 'gray', 'light_gray', 'cyan', 'purple', 'blue', 'brown', 'green', 'red', 'black', 'none']}
+    },
+    'scope' -> 'global'
+};
 
 plot_claim(name, color, overwrite) ->
 (
