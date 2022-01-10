@@ -107,7 +107,7 @@ plot_unclaim(confirm) ->
     pos = [player~'dimension', ceil(pos:0) - 1, ceil(pos:2) - 1];
 
     plotname = global_regions:pos;
-    if(plot != null,
+    if(plotname != null,
         plot = plots:'plots':plotname;
         if(length(plot:'positions') == 1,
                 print(player, format('l Unclaiming this region will delete plot ', 't ' + plotname, 'l . If you want to continue, run ', 'm [/plot delete ' + plotname + ']', '!/plot delete ' + plotname));
@@ -244,7 +244,7 @@ plot_modify(name, property, value) ->
     if(plot != null,
         if(property == 'tp',
             if(plot:'positions'~[value:0, ceil(value:1 / 512) - 1, ceil(value:3 / 512) - 1] != null,
-                plots:name:'tp' = value;
+                plots:'plots':name:'tp' = value;
                 write_file('plots', 'json', plots);
                 print(player, format('r Teleport location for ', 't ' + name, 'r  set to ', 't ' + value));
                 return()
@@ -253,13 +253,14 @@ plot_modify(name, property, value) ->
             return()
         );
         if(property == 'name',
-            if(plots:value != null,
+            if(plots:'plots':value != null,
                 print(player, format('l Name ', 't ' + value, 'l  is already taken'));
                 return()
             );
-            plots:value = plot;
-            delete(plots, name);
+            plots:'plots':value = plot;
+            delete(plots:'plots', name);
             write_file('plots', 'json', plots);
+            for(plot:'positions', global_regions:_ = value);
             print(player, format('l Plot name changed from ', 't ' + name, 'l  to ', 't ' + value));
             return()
         )
