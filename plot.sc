@@ -25,6 +25,10 @@ __config()->
     'scope' -> 'global'
 };
 
+if(list_files('', 'json')~'plots' == null,
+    write_file('plots', 'json', {'plots' -> {}})
+);
+
 global_regions = {};
 plots = read_file('plots', 'json');
 for(plots:'plots',
@@ -38,18 +42,8 @@ plot_claim(name, color, overwrite) ->
     pos = player~'pos' / 512;
     pos = [player~'dimension', ceil(pos:0) - 1, ceil(pos:2) - 1];
 
-    if(list_files('', 'json')~'plots' == null,
-        write_file('plots', 'json', {'plots' -> {name -> {'owners' -> [player], 'positions' -> [pos], 'tp' -> [pos:0, pos:1 * 512 + 256, 1, pos:2 * 512 + 256, 180, 0], 'subplots' -> []}}});
-        global_regions = global_regions + {pos -> name};
-        print(player, format('r Region ', 't ' + pos, 'r  claimed for new plot ', 't ' + name, 'r  by ', 't ' + player));
-        highlight_region(pos, color);
-        return();
-    );
-
     plots = read_file('plots', 'json');
 
-    i = 0;
-    j = 0;
     plotname = global_regions:pos;
     if(plotname != null,
         if(plotname == name,
@@ -88,9 +82,9 @@ add_region_to_plot(plots, pos, name, color, player) ->
     if(plot != null,
         plots:'plots':name:'positions':length(plot:'positions') = pos;
         global_regions = global_regions + {pos -> name};
-        write_file('plots', 'json', plots);
         print(player, format('r Region ', 't ' + pos, 'r  added to plot ', 't ' + name));
         highlight_region(pos, color);
+        write_file('plots', 'json', plots);
         return(true)
     );
     return(false)
@@ -102,7 +96,7 @@ new_plot_entry(plots, pos, name, owners, color, player) ->
     global_regions = global_regions + {pos -> name};
     print(player, format('r Region ', 't ' + pos, 'r  claimed for new plot ', 't ' + name, 'r  by ', 't ' + owners));
     highlight_region(pos, color);
-    write_file('plots', 'json', plots);
+    write_file('plots', 'json', plots)
 );
 
 plot_unclaim(confirm) ->
@@ -372,8 +366,7 @@ __on_tick() ->
                     return()
                 );
                 global_previous_plot = global_previous_plot + {e -> null};
-                display_title(e, 'title', format('w Exiting claimed area'));
-                display_title(e, 'subtitle', format('w Anything you build here will dissappear when we prune the world'))
+                display_title(e, 'title', format('w Exiting claimed area'))
             )
         )
     )))
